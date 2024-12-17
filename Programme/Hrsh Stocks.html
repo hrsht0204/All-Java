@@ -379,39 +379,9 @@ function buy(stockName) {
 }
 
 // Function to handle selling stocks
-function sell(stockName) {
-  const stock = stocks.find(s => s.name === stockName);
-  const quantityOwned = userStocks[stockName] || 0; // Get the quantity owned by the user
-  const quantityToSell = parseInt(prompt(`Enter the quantity of ${stockName} to sell (You have ${quantityOwned} shares)`));
-  if (!isNaN(quantityToSell) && quantityToSell > 0 && quantityToSell <= quantityOwned) {
-    const totalEarned = stock.price * quantityToSell;
-    userBalance += totalEarned;
-    userStocks[stockName] -= quantityToSell; // Update the quantity owned by the user
-    transactionHistory.push(`Sold ${quantityToSell} shares of ${stockName} for $${totalEarned.toFixed(2)}`);
-    updateBalance();
-    updateTransactionHistory();
-    updateUserData(); // Update user data in localStorage
-  } else {
-    alert('Invalid quantity or you do not own enough shares to sell');
-  }
-}
 
 
-// Function to update user balance
-function updateBalance() {
-  document.getElementById('balance').innerText = userBalance.toFixed(2);
-}
-
-// Function to update transaction history
-function updateTransactionHistory() {
-  const historyList = document.getElementById('transactionHistory');
-  historyList.innerHTML = '';
-  transactionHistory.forEach(transaction => {
-    const listItem = document.createElement('li');
-    listItem.textContent = transaction;
-    historyList.appendChild(listItem);
-  });
-}
+// Function to update user balanc
 
 // Function to update market status based on changes
 function updateMarketStatus() {
@@ -450,63 +420,115 @@ function initialize() {
   }
 }
 // Function to update user data in localStorage
-function updateUserData() {
-  const userData = {
-    loggedInUser: loggedInUser,
-    userBalance: userBalance,
-    userStocks: userStocks
-  };
-  localStorage.setItem('userData', JSON.stringify(userData));
-}
-
-
-function openStockChart(stockName) {
-  const stock = stocks.find(s => s.name === stockName);
-  if (stock) {
-    document.getElementById('modalTitle').innerText = `${stock.name} Price Chart`;
-    const ctx = document.getElementById('stockChartCanvas').getContext('2d');
-    if (stockChart) {
-      stockChart.destroy();
+  // Function to handle selling stocks
+  function sell(stockName) {
+    const stock = stocks.find(s => s.name === stockName);
+    const quantityOwned = userStocks[stockName] || 0; // Get the quantity owned by the user
+    const quantityToSell = parseInt(prompt(`Enter the quantity of ${stockName} to sell (You have ${quantityOwned} shares)`));
+    if (!isNaN(quantityToSell) && quantityToSell > 0 && quantityToSell <= quantityOwned) {
+      const totalPrice = stock.price * quantityToSell;
+      userBalance += totalPrice;
+      userStocks[stockName] -= quantityToSell; // Decrease the quantity owned
+      if (userStocks[stockName] === 0) {
+        delete userStocks[stockName]; // Remove stock from userStocks if none are left
+      }
+      transactionHistory.push(`Sold ${quantityToSell} shares of ${stockName} for $${totalPrice.toFixed(2)}`);
+      updateBalance();
+      updateTransactionHistory();
+      updateUserData(); // Update user data in localStorage
+    } else {
+      alert('Invalid quantity');
     }
+  }
+
+  // Function to update user balance display
+  function updateBalance() {
+    document.getElementById('balance').innerText = userBalance.toFixed(2);
+  }
+
+  // Function to update transaction history display
+  function updateTransactionHistory() {
+    const historyList = document.getElementById('transactionHistory');
+    historyList.innerHTML = '';
+    transactionHistory.forEach(transaction => {
+      const listItem = document.createElement('li');
+      listItem.textContent = transaction;
+      historyList.appendChild(listItem);
+    });
+  }
+
+  // Function to open stock price chart modal
+  function openStockChart(stockName) {
+    const stock = stocks.find(s => s.name === stockName);
+    const ctx = document.getElementById('stockChartCanvas').getContext('2d');
+    const chartData = {
+      labels: stock.priceHistory.map((_, index) => `Day ${index + 1}`),
+      datasets: [{
+        label: stock.name,
+        data: stock.priceHistory,
+        borderColor: 'rgba(75, 192, 192, 1)',
+        borderWidth: 2,
+        fill: false
+      }]
+    };
     stockChart = new Chart(ctx, {
       type: 'line',
-      data: {
-        labels: Array(stock.priceHistory.length).fill(''), // Generate labels based on price history length
-        datasets: [{
-          label: `${stock.name} Price`,
-          data: stock.priceHistory,
-          borderColor: 'rgba(75, 192, 192, 1)',
-          borderWidth: 2,
-          fill: false,
-        }],
-      },
+      data: chartData,
       options: {
+        responsive: true,
         scales: {
-          x: {
-            title: {
-              display: true,
-              text: 'Time',
-            },
-          },
           y: {
-            title: {
-              display: true,
-              text: 'Price',
-            },
-          },
-        },
-      },
+            beginAtZero: false
+          }
+        }
+      }
     });
+    document.getElementById('modalTitle').innerText = `${stock.name} Price Chart`;
     document.getElementById('stockChartModal').style.display = 'block';
   }
-}
 
-// Close stock chart modal
-function closeModal() {
-  document.getElementById('stockChartModal').style.display = 'none';
-}
+  // Function to close modal
+  function closeModal() {
+    document.getElementById('stockChartModal').style.display = 'none';
+    if (stockChart) {
+      stockChart.destroy(); // Destroy the chart instance to free up memory
+    }
+  }
 
-updateInterval = setInterval(updateMarket, 5000);
+  // Function to update user data in localStorage
+  function updateUserData() {
+    const data = {
+      user: loggedInUser,
+      balance: userBalance,
+      stocks: userStocks,
+      transactions: transactionHistory,
+    };
+    localStorage.setItem('marketData', JSON.stringify(data));
+  }
+
+  // Load saved data from localStorage on page load
+  window.onload = () => {
+    const savedData = JSON.parse(localStorage.getItem('marketData'));
+    if (savedData) {
+      loggedInUser = savedData.user;
+      userBalance = savedData.balance;
+      userStocks = savedData.stocks;
+      transactionHistory = savedData.transactions;
+      if (loggedInUser) {
+        document.getElementById('loggedInUser').innerText = loggedInUser;
+        document.getElementById('balance').innerText = userBalance.toFixed(2);
+        document.getElementById('loginSection').style.display = 'none';
+        document.getElementById('marketSection').style.display = 'block';
+      }
+    }
+  };
+</script>
+</body>
+</html>
+
+
+
+
 
 
 </script>

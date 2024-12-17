@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Virtual Pet Store</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f8ff;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background-color: #ff6347;
+            color: white;
+            padding: 1em;
+            text-align: center;
+        }
+        .container {
+            width: 80%;
+            margin: auto;
+            overflow: hidden;
+        }
+        .pet-card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            padding: 1em;
+            margin: 1em 0;
+        }
+        .pet-card img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+        }
+        .pet-card h2 {
+            margin: 0;
+            font-size: 1.5em;
+        }
+        .pet-card p {
+            font-size: 1em;
+        }
+        .button {
+            background-color: #ff6347;
+            color: white;
+            border: none;
+            padding: 0.5em 1em;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .button:hover {
+            background-color: #ff4500;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Virtual Pet Store</h1>
+    </header>
+    <div class="container">
+        <div id="pet-list"></div>
+    </div>
+    <script>
+        const pets = [
+            {
+                name: "Fluffy",
+                description: "A playful kitten with a mischievous streak.",
+                image: "https://placekitten.com/400/300"
+            },
+            {
+                name: "Rex",
+                description: "A loyal and brave dragon who loves to play fetch.",
+                image: "https://placeimg.com/400/300/animals"
+            },
+            {
+                name: "Bubbles",
+                description: "A friendly and bubbly fish who enjoys singing.",
+                image: "https://placeimg.com/400/300/nature"
+            }
+        ];
+
+        function displayPets() {
+            const petList = document.getElementById('pet-list');
+            petList.innerHTML = pets.map(pet => `
+                <div class="pet-card">
+                    <img src="${pet.image}" alt="${pet.name}">
+                    <h2>${pet.name}</h2>
+                    <p>${pet.description}</p>
+                    <button class="button" onclick="adoptPet('${pet.name}')">Adopt ${pet.name}</button>
+                </div>
+            `).join('');
+        }
+
+        function adoptPet(petName) {
+            alert(`Congratulations! You've adopted ${petName}.`);
+        }
+
+        displayPets();
+    </script>
+</body>
+</html>
