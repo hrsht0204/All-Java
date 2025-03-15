@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mock Stock Market</title>
+    <style>
+        /* Basic styling */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+            position: relative;
+        }
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        h1, h2, h3 {
+            text-align: center;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .button {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 5px;
+            background-color: #4caf50;
+            color: #fff;
+            text-decoration: none;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .button:hover {
+            background-color: #45a049;
+        }
+        .control-box {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 10px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0 0 5px rgba(0,0,0,0.1);
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+            padding-top: 60px;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 5% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 600px;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div class="container">
+    <h1>Mock Stock Market</h1>
+    <div class="control-box">
+        <h3>Market Controls</h3>
+        <button class="button" onclick="toggleMarket()">Toggle Market</button>
+        <button class="button" onclick="toggleMarketStatus()">Toggle Market Status</button>
+        <div id="marketSettings" style="display: none;">
+            <h3>Set Stock Prices</h3>
+            <label for="companyName">Company Name:</label>
+            <input type="text" id="companyName">
+            <label for="stockPrice">Stock Price:</label>
+            <input type="number" id="stockPrice" step="0.01">
+            <button class="button" onclick="setStockPrice()">Set Price</button>
+        </div>
+    </div>
+    <div id="loginSection">
+        <h2>Login</h2>
+        <input type="text" id="username" placeholder="Username">
+        <input type="password" id="password" placeholder="Password">
+        <button class="button" onclick="login()">Login</button>
+        <p>Don't have an account? <a href="#" onclick="showRegistration()">Register here</a></p>
+    </div>
+    <div id="registrationSection" style="display: none;">
+        <h2>Registration</h2>
+        <input type="text" id="newUsername" placeholder="Username">
+        <input type="password" id="newPassword" placeholder="Password">
+        <button class="button" onclick="register()">Register</button>
+        <p>Already have an account? <a href="#" onclick="showLogin()">Login here</a></p>
+    </div>
+    <div id="marketSection" style="display: none;">
+        <p>Welcome, <span id="loggedInUser "></span>! Your balance: ₹<span id="balance">10000</span></p>
+        <p>Current Market Status: <span id="marketStatus">Normal</span></p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Stock</th>
+                    <th>Price</th>
+                    <th>Change</th>
+                    <th>Buy/Sell</th>
+                </tr>
+            </thead>
+            <tbody id="stockTable">
+                <!-- Stocks will be dynamically added here -->
+            </tbody>
+        </table>
+        <h3>Transaction History</h3>
+        <ul id="transactionHistory">
+            <!-- Transaction history will be dynamically added here -->
+        </ul>
+        <button class="button" onclick="saveUserData()">Save Data</button>
+        <button class="button" onclick="logout()">Logout</button>
+    </div>
+</div>
+
+<div id="stockChartModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <h2 id="modalTitle">Stock Price Chart</h2>
+        <canvas id="stockChartCanvas"></canvas>
+    </div>
+</div>
+<script>
+    // Define stocks with initial prices
+    let stocks = [
+        { name: 'Apple', price: 150, priceHistory: [150] },
+        { name: 'Google', price: 250, priceHistory: [250] },
+        { name: 'Amazon', price: 3200, priceHistory: [3200] },
+        { name: 'Microsoft', price: 300, priceHistory: [300] },
+        { name: 'Reliance', price: 2200, priceHistory: [2200] },
+        { name: 'Infosys', price: 1400, priceHistory: [1400] },
+        { name: 'TCS', price: 3100, priceHistory: [3100] },
+        { name: 'HUL', price: 2300, priceHistory: [2300] },
+        { name: 'Nestlé India', price: 16500, priceHistory: [16500] },
+        { name: 'Britannia', price: 3900, priceHistory: [3900] },
+        { name: 'Coca-Cola', price: 55, priceHistory: [55] },
+        { name: 'PepsiCo', price: 150, priceHistory: [150] },
+        { name: 'McDonald\'s', price: 240, priceHistory: [240] },
+        { name: 'Starbucks', price: 110, priceHistory: [110] },
+        { name: 'Walmart', price: 140, priceHistory: [140] },
+        { name: 'Tesla', price: 700, priceHistory: [700] },
+        { name: 'Facebook', price: 350, priceHistory: [350] },
+        { name: 'Alphabet', price: 2200, priceHistory: [2200] },
+        { name: 'IBM', price: 120, priceHistory: [120] },
+    ];
+
+    let loggedInUser  = null;
+    let userBalance = 10000;
+    let transactionHistory = [];
+    let userStocks = {};
+    let marketToggled = false;
+    let marketStatusToggled = false;
+    let updateInterval;
+    let stockChart;
+    let users = JSON.parse(localStorage.getItem("users")) || {};
+
+    // User login function
+    function login() {
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+
+        if (users[username] && users[username].password === password) {
+            loggedInUser  = username;
+            showMarket();
+            loadUserData();
+        } else {
+            alert("Invalid credentials");
+        }
+    }
+
+    // Show market section
+    function showMarket() {
+        document.getElementById("loginSection").style.display = "none";
+        document.getElementById("registrationSection").style.display = "none";
+        document.getElementById("marketSection").style.display = "block";
+        document.getElementById("loggedInUser ").innerText = loggedInUser ;
+        document.getElementById("balance").innerText = users[loggedInUser ].balance;
+        updateMarket();
+        updateMarketStatus();
+    }
+
+    // User registration function
+    function register() {
+        const username = document.getElementById("newUsername").value;
+        const password = document.getElementById("newPassword").value;
+
+        if (!users[username]) {
+            users[username] = { password, balance: 10000, stocks: {} };
+            localStorage.setItem("users", JSON.stringify(users));
+            alert("Registration successful!");
+            showLogin();
+        } else {
+            alert("User  already exists!");
+        }
+    }
+
+    // Show registration section
+    function showRegistration() {
+        document.getElementById('loginSection').style.display = 'none';
+        document.getElementById('registrationSection').style.display = 'block';
+    }
+
+    // Show login section
+    function showLogin() {
+        document.getElementById('registrationSection').style.display = 'none';
+        document.getElementById('loginSection').style.display = 'block';
+    }
+
+    // Logout function
+    function logout() {
+        loggedInUser  = null;
+        userBalance = 10000;
+        userStocks = {};
+        document.getElementById('marketSection').style.display = 'none';
+        document.getElementById('loginSection').style.display = 'block';
+        clearInterval(updateInterval);
+        saveUserData();
+    }
+
+    // Toggle market function
+    function toggleMarket() {
+        marketToggled = !marketToggled;
+        const marketSettings = document.getElementById('marketSettings');
+        if (marketToggled) {
+            clearInterval(updateInterval);
+            marketSettings.style.display = 'block';
+        } else {
+            updateMarket();
+            marketSettings.style.display = 'none';
+        }
+    }
+
+    // Toggle market status function
+    function toggleMarketStatus() {
+        marketStatusToggled = !marketStatusToggled;
+        const marketStatus = document.getElementById('marketStatus');
+        marketStatus.style.display = marketStatusToggled ? 'none' : 'block';
+    }
+
+    // Set stock price manually
+    function setStockPrice() {
+        const companyName = document.getElementById('companyName').value;
+        const stockPrice = parseFloat(document.getElementById('stockPrice').value);
+        const stock = stocks.find(s => s.name === companyName);
+        if (stock) {
+            if (!isNaN(stockPrice) && stockPrice > 0) {
+                stock.price = stockPrice;
+                updateStockTable();
+            } else {
+                alert('Invalid stock price');
+            }
+        } else {
+            alert('Invalid company name');
+        }
+    }
+
+    // Simulate market fluctuations
+    function simulateMarket() {
+        if (!marketToggled && !marketStatusToggled) {
+            stocks.forEach(stock => {
+                const change = Math.random() * 20 - 10; // Random change between -10 to +10
+                const randomMultiplier = Math.random() * 0.5 + 0.75; // Random multiplier between 0.75 to 1.25
+                let newPrice = stock.price * randomMultiplier + change;
+    
+                // Ensure the new price does not go below zero
+                if (newPrice < 0) {
+                    newPrice = 0;
+                }
+    
+                stock.price = newPrice; // Update the stock price
+            });
+        }
+    }
+    // Update market and related components
+    function updateMarket() {
+        updateInterval = setInterval(() => {
+            simulateMarket();
+            updateStockTable();
+            if (!marketStatusToggled) {
+                updateMarketStatus();
+            }
+        }, 5000); // Update every 5 seconds
+    }
+
+    // Update stock table
+    function updateStockTable() {
+        const table = document.getElementById('stockTable');
+        table.innerHTML = '';
+        stocks.forEach(stock => {
+            const change = (Math.round((stock.price - 150)) / 100).toFixed(2);
+            const arrowIcon = change > 0 ? '▲' : change < 0 ? '▼' : '';
+            const arrowColor = change > 0 ? 'green' : change < 0 ? 'red' : '';
+            const row = `<tr>
+                <td><a href="#" onclick="openStockChart('${stock.name}')">${stock.name}</a></td>
+                <td>₹${stock.price.toFixed(2)}</td>
+                <td style="color: ${arrowColor};">${arrowIcon} ${change}</td>
+                <td>
+                    <button class="button" onclick="buy('${stock.name}')">Buy</button>
+                    <button class="button" onclick="sell('${stock.name}')">Sell</button>
+                </td>
+            </tr>`;
+            table.innerHTML += row;
+            stock.price += parseFloat(change);
+            stock.priceHistory.push(stock.price);
+        });
+    }
+
+    // Update market status based on changes
+    function updateMarketStatus() {
+        const marketStatus = document.getElementById('marketStatus');
+        const totalChange = stocks.reduce((acc, stock) => acc + (stock.price - 150), 0);
+        if (totalChange > 0) {
+            marketStatus.innerText = 'Growing';
+            marketStatus.style.color = 'green';
+        } else if (totalChange < 0) {
+            marketStatus.innerText = 'Declining';
+            marketStatus.style.color = 'red';
+        } else {
+            marketStatus.innerText = 'Normal';
+            marketStatus.style.color = 'black';
+        }
+    }
+
+    // Save user data
+    function saveUserData() {
+        if (loggedInUser ) {
+            users[loggedInUser ].balance = userBalance;
+            users[loggedInUser ].stocks = userStocks;
+            users[loggedInUser ].transactions = transactionHistory;
+            localStorage.setItem("users", JSON.stringify(users));
+        }
+    }
+
+    // Load user data from localStorage
+    function loadUserData() {
+        if (loggedInUser  && users[loggedInUser ]) {
+            userBalance = users[loggedInUser ].balance || 10000;
+            userStocks = users[loggedInUser ].stocks || {};
+            transactionHistory = users[loggedInUser ].transactions || [];
+            updateBalance();
+            updateTransactionHistory();
+        }
+    }
+
+    // Buy stock function
+    function buy(stockName) {
+        const stock = stocks.find(s => s.name === stockName);
+        const quantityToBuy = parseInt(prompt(`Enter the quantity of ${stockName} to buy`));
+        if (!isNaN(quantityToBuy) && quantityToBuy > 0) {
+            const totalPrice = stock.price * quantityToBuy;
+            if (totalPrice <= userBalance) {
+                userBalance -= totalPrice;
+                if (!userStocks[stockName]) {
+                    userStocks[stockName] = { quantity: 0, buyPrices: [] };
+                }
+                userStocks[stockName].quantity += quantityToBuy;
+                userStocks[stockName].buyPrices.push(stock.price);
+                transactionHistory.push(`Bought ${quantityToBuy} shares of ${stockName} for ₹${totalPrice.toFixed(2)}`);
+                updateBalance();
+                updateTransactionHistory();
+                saveUserData();
+            } else {
+                alert('Insufficient balance');
+            }
+        } else {
+            alert('Invalid quantity');
+        }
+    }
+
+    // Sell stock function
+    function sell(stockName) {
+        const stock = stocks.find(s => s.name === stockName);
+        const quantityOwned = userStocks[stockName]?.quantity || 0;
+        const quantityToSell = parseInt(prompt(`Enter the quantity of ${stockName} to sell (You have ${quantityOwned} shares)`));
+        if (!isNaN(quantityToSell) && quantityToSell > 0 && quantityToSell <= quantityOwned) {
+            const totalPrice = stock.price * quantityToSell;
+            userBalance += totalPrice;
+            userStocks[stockName].quantity -= quantityToSell;
+            if (userStocks[stockName].quantity === 0) {
+                delete userStocks[stockName];
+            }
+            transactionHistory.push(`Sold ${quantityToSell} shares of ${stockName} for ₹${totalPrice.toFixed(2)}`);
+            updateBalance();
+            updateTransactionHistory();
+            saveUserData();
+        } else {
+            alert('Invalid quantity');
+        }
+    }
+
+    // Update balance display
+    function updateBalance() {
+        document.getElementById('balance').innerText = userBalance.toFixed(2);
+        saveUserData();
+    }
+
+    // Update transaction history display
+    function updateTransactionHistory() {
+        const historyList = document.getElementById('transactionHistory');
+        historyList.innerHTML = '';
+        transactionHistory.forEach(transaction => {
+            const listItem = document.createElement('li');
+            listItem.textContent = transaction;
+            historyList.appendChild(listItem);
+        });
+        saveUserData();
+    }
+
+    // Open stock chart modal
+    function openStockChart(stockName) {
+        const stock = stocks.find(s => s.name === stockName);
+        const ctx = document.getElementById('stockChartCanvas').getContext('2d');
+
+        const chartData = {
+            labels: stock.priceHistory.map((_, index) => `Day ${index + 1}`),
+            datasets: [{
+                label: stock.name,
+                data: stock.priceHistory,
+                borderColor: 'rgba(75, 192, 192, 1)',
+                borderWidth: 2,
+                fill: false
+            }]
+        };
+
+        if (userStocks[stockName] && userStocks[stockName].buyPrices.length > 0) {
+            chartData.datasets.push({
+                label: 'Buy Points',
+                data: stock.priceHistory.map((price, index) =>
+                    userStocks[stockName].buyPrices.includes(price) ? price : null
+                ),
+                backgroundColor: 'red',
+                pointRadius: 5,
+                pointHoverRadius: 7,
+                type: 'scatter'
+            });
+        }
+
+        stockChart = new Chart(ctx, {
+            type: 'line',
+            data: chartData,
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        beginAtZero: false
+                    }
+                }
+            }
+        });
+
+        document.getElementById('modalTitle').innerText = `${stock.name} Price Chart`;
+        document.getElementById('stockChartModal').style.display = 'block';
+    }
+
+    // Close stock chart modal
+    function closeModal() {
+        document.getElementById('stockChartModal').style.display = 'none';
+        if (stockChart) {
+            stockChart.destroy();
+        }
+    }
+
+    // Load user data on page load
+    window.onload = function () {
+        loggedInUser  = localStorage.getItem("loggedInUser ");
+        if (loggedInUser ) {
+            loadUserData();
+            showMarket();
+        }
+    };
+</script>
+</body>
+</html>
