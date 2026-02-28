@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pokémon TCG Shop Simulator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: linear-gradient(135deg, #ffcc00, #ff6600);
+            color: white;
+        }
+        .container { display: flex; }
+        .sidebar {
+            width: 200px;
+            background: rgba(0, 0, 0, 0.8);
+            padding: 10px;
+            position: fixed;
+            left: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            height: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border-radius: 10px;
+        }
+        .sidebar button {
+            margin-top: 20px;
+            padding: 10px;
+            width: 150px;
+            background: #ffcc00;
+            color: black;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
+        }
+        .sidebar button:hover {
+            background: #ff6600;
+            color: white;
+        }
+        .content {
+            margin-left: 220px;
+            padding: 20px;
+            flex-grow: 1;
+        }
+        .modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            display: none;
+            color: white;
+        }
+        .modal button {
+            margin-top: 10px;
+            padding: 10px;
+            background: #ffcc00;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .card {
+            width: 100px;
+            height: 150px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px solid white;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+        .common { background: gray; }
+        .uncommon { background: green; }
+        .rare { background: blue; }
+        .ultra-rare { background: purple; }
+        .legendary { background: gold; color: black; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <button onclick="toggleModal('storeModal')">Open Store</button>
+            <button onclick="toggleModal('albumModal')">View Album</button>
+            <button onclick="toggleModal('inventoryModal')">View Inventory</button>
+            <button onclick="toggleModal('shopModal')">View Shop</button>
+        </div>
+        <div class="content">
+            <h1>Pokémon TCG Shop Simulator</h1>
+            <p>Money: <span id="money">1000.00</span> PokéDollars</p>
+            <h2>Customer Requests</h2>
+            <p id="customer-request">Waiting for customer...</p>
+            <button onclick="customerInteraction()">Customer Interaction</button>
+            
+            <!-- New section for priced items -->
+            <div class="priced-items">
+                <h2>Priced Items for Sale</h2>
+                <div id="priced-items-list"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="storeModal" class="modal">
+        <h2>Store</h2>
+        <button onclick="confirmBuyPack()">Buy Pokémon Pack - 500 PokéDollars</button>
+        <button onclick="toggleModal('storeModal')">Close</button>
+    </div>
+    
+    <div id="albumModal" class="modal">
+        <h2>My Collection</h2>
+        <div class="album-container" id="album"></div>
+        <button onclick="toggleModal('albumModal')">Close</button>
+    </div>
+
+    <div id="inventoryModal" class="modal">
+        <h2>My Inventory</h2>
+        <div class="inventory-container" id="inventory"></div>
+        <button onclick="toggleModal('inventoryModal')">Close</button>
+    </div>
+
+    <div id="shopModal" class="modal">
+        <h2>Shop</h2>
+        <div class="shop-container" id="shop"></div>
+        <button onclick="toggleModal('shopModal')">Close</button>
+    </div>
+    
+    <script>
+        let money = 1000;
+        let inventory = [];
+        let shop = [];
+        const rarities = ["common", "uncommon", "rare", "ultra-rare", "legendary"];
+        const packPrice = 500;
+        const packSize = 5; // Number of cards in a pack
+        
+        function updateUI() {
+            document.getElementById("money").textContent = money.toFixed(2);
+            const albumDiv = document.getElementById("album");
+            albumDiv.innerHTML = "";
+            
+            let albumPage = document.createElement("div");
+            albumPage.className = "album-page";
+            albumDiv.appendChild(albumPage);
+            
+            inventory.forEach((card, index) => {
+                if (card.name) { // Only display cards with names
+                    const cardDiv = document.createElement("div");
+                    cardDiv.className = `card ${card.rarity}`;
+                    cardDiv.textContent = `${card.name} (${card.rarity.toUpperCase()})`;
+                    cardDiv.onclick = () => sellCard(index);
+                    
+                    if (albumPage.children.length >= 9) {
+                        albumPage = document.createElement("div");
+                        albumPage.className = "album-page";
+                        albumDiv.appendChild(albumPage);
+                    }
+                    
+                    albumPage.appendChild(cardDiv);
+                }
+            });
+
+            const inventoryDiv = document.getElementById("inventory");
+            inventoryDiv.innerHTML = "";
+            inventory.forEach((pack, index) => {
+                const packDiv = document.createElement("div");
+                packDiv.className = "card";
+                packDiv.textContent = `Pokémon Pack`;
+                packDiv.onclick = () => openOrSellPack(index);
+                inventoryDiv.appendChild(packDiv);
+            });
+
+            const shopDiv = document.getElementById("shop");
+            shopDiv.innerHTML = "";
+            shop.forEach((pack, index) => {
+                const packDiv = document.createElement("div");
+                packDiv.className = "card";
+                packDiv.textContent = `Pokémon Pack - ${pack.price.toFixed(2)} PokéDollars`;
+                packDiv.onclick = () => alert("Only customers can buy packs from the shop.");
+                shopDiv.appendChild(packDiv);
+            });
+
+            const pricedItemsList = document.getElementById("priced-items-list");
+            pricedItemsList.innerHTML = "";
+            shop.forEach((item) => {
+                if (item.type === 'pack') { // Check for type
+                    const itemDiv = document.createElement("div");
+                    itemDiv.textContent = `Pokémon Pack - ${item.price.toFixed(2)} PokéDollars`;
+                    pricedItemsList.appendChild(itemDiv);
+                }
+            });
+        }
+
+        function confirmBuyPack() {
+            if (money >= packPrice) {
+                if (confirm("Are you sure you want to buy a Pokémon Pack for 500 PokéDollars?")) {
+                    inventory.push({}); // Add an empty pack to inventory
+                    money -= packPrice;
+                    updateUI();
+                }
+            } else {
+                alert("Not enough money!");
+            }
+        }
+
+        function openOrSellPack(index) {
+            if (confirm("Do you want to open this pack or put it on sale?")) {
+                openPack(index);
+            } else {
+                const price = prompt("Enter the selling price for the pack:");
+                if (price && !isNaN(price)) {
+                    shop.push({ price: parseFloat(price), type: 'pack' }); // Add type to differentiate
+                    inventory.splice(index, 1);
+                    updateUI();
+                }
+            }
+        }
+
+        function openPack(index) {
+            for (let i = 0; i < packSize; i++) {
+                const rarity = rarities[Math.floor(Math.random() * rarities.length)];
+                const cardName = `Pokémon ${Math.floor(Math.random() * 100)}`;
+                inventory.push({ name: cardName, rarity });
+            }
+            inventory.splice(index, 1); // Remove the pack from inventory
+            updateUI();
+        }
+
+        function toggleModal(id) {
+            let modal = document.getElementById(id);
+            modal.style.display = (modal.style.display === "block") ? "none" : "block";
+        }
+
+        function customerInteraction() {
+            if (shop.length === 0) {
+                document.getElementById("customer-request").textContent = "No packs available for customers.";
+                return;
+            }
+        
+            // Simulate a customer interaction
+            const action = 'buy'; // Always a buy action for testing
+            const packIndex = Math.floor(Math.random() * shop.length); // Select from shop instead of inventory
+            const pack = shop[packIndex];
+            const offerPrice = pack.price; // Use the price from the shop
+        
+            if (action === 'buy') {
+                document.getElementById("customer-request").textContent = `Customer wants to buy a Pokémon Pack for ${offerPrice.toFixed(2)} PokéDollars.`;
+                if (confirm(`Do you want to sell a Pokémon Pack for ${offerPrice.toFixed(2)} PokéDollars?`)) {
+                    money += offerPrice;
+                    shop.splice(packIndex, 1); // Remove the pack from the shop after sale
+                    updateUI();
+                    document.getElementById("customer-request").textContent = "Transaction successful!";
+                } else {
+                    document.getElementById("customer-request").textContent = "Transaction canceled.";
+                }
+            }
+        }
+
+        // Automatically trigger customer interactions every 5 seconds for testing
+        setInterval(customerInteraction, 5000);
+
+        const prices = {
+            common: 50,
+            uncommon: 100,
+            rare: 200,
+            "ultra-rare": 500,
+            legendary: 1000
+        };
+
+        function sellCard(index) {
+            if (inventory.length > 0) {
+                const card = inventory[index];
+                money += prices[card.rarity];
+                inventory.splice(index, 1);
+                updateUI();
+            } else {
+                alert("No cards to sell!");
+            }
+        }
+
+        updateUI();
+    </script>
+</body>
+</html>

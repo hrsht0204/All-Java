@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vintage Radio UI</title>
+  <style>
+    body {
+      background-color: #1a1a1a;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      font-family: sans-serif;
+    }
+    .radio {
+      background-image: url('chatgpt.webp');
+      background-size: cover;
+      width: 800px;
+      height: 468px;
+      position: relative;
+    }
+    .btn, .knob {
+      position: absolute;
+      background: rgba(255, 255, 255, 0.05);
+      border: 2px solid #ccc;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      cursor: pointer;
+    }
+    .knob:hover, .btn:hover {
+      border-color: #0f0;
+    }
+    /* Sample interactive elements */
+    .band-change { top: 300px; left: 170px; }
+    .tuning { top: 300px; left: 430px; }
+    .audio-gain { top: 310px; left: 300px; }
+
+    .label {
+      color: #fff;
+      position: absolute;
+      top: 430px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 1.2em;
+    }
+  </style>
+</head>
+<body>
+  <div class="radio">
+    <button class="knob band-change" onclick="updateLabel('Band Changed')"></button>
+    <button class="knob audio-gain" onclick="updateLabel('Audio Gain Set')"></button>
+    <button class="knob tuning" onclick="updateLabel('Tuned')"></button>
+    <div class="label" id="label">Use the knobs to interact</div>
+  </div>
+  <script>
+    function updateLabel(text) {
+      document.getElementById('label').innerText = text;
+    }
+  </script>
+</body>
+</html>
