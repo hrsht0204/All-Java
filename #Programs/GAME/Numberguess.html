@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Number Guesser</title>
+    <!-- Tailwind CSS for layout and utilities -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Custom CSS for Glassmorphism, Neon effects, and Animations */
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            margin: 0;
+        }
+
+        /* Animated Background Orbs */
+        .bg-orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            z-index: -1;
+            animation: float 10s infinite ease-in-out alternate;
+        }
+        .orb-1 { width: 300px; height: 300px; background: rgba(0, 255, 255, 0.15); top: 10%; left: 20%; }
+        .orb-2 { width: 400px; height: 400px; background: rgba(255, 0, 255, 0.15); bottom: 10%; right: 10%; animation-delay: -5s; }
+
+        @keyframes float {
+            0% { transform: translateY(0) scale(1); }
+            100% { transform: translateY(-50px) scale(1.1); }
+        }
+
+        /* Glassmorphism Card */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 24px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            width: 100%;
+            max-width: 450px;
+            padding: 2.5rem;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        /* Neon Buttons */
+        .btn-neon {
+            background: transparent;
+            border: 2px solid #00e5ff;
+            color: #00e5ff;
+            text-transform: uppercase;
+            font-weight: 600;
+            letter-spacing: 1px;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-neon:hover:not(:disabled) {
+            background: #00e5ff;
+            color: #0f0c29;
+            box-shadow: 0 0 15px #00e5ff, 0 0 30px #00e5ff;
+            transform: translateY(-2px);
+        }
+
+        .btn-neon:disabled {
+            border-color: #555;
+            color: #555;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        /* Difficulty Selection Styling */
+        .diff-btn {
+            border: 2px solid rgba(255,255,255,0.2);
+            color: white;
+            transition: all 0.3s;
+        }
+        .diff-btn.selected-easy { border-color: #00e7df; background: rgba(0, 231, 223, 0.1); color: #00e7df; box-shadow: 0 0 10px rgba(0,231,223,0.5); }
+        .diff-btn.selected-medium { border-color: #fce803; background: rgba(252, 232, 3, 0.1); color: #fce803; box-shadow: 0 0 10px rgba(252,232,3,0.5); }
+        .diff-btn.selected-hard { border-color: #ff0055; background: rgba(255, 0, 85, 0.1); color: #ff0055; box-shadow: 0 0 10px rgba(255,0,85,0.5); }
+
+        /* Neon Input */
+        .neon-input {
+            background: rgba(0, 0, 0, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 2rem;
+            text-align: center;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+        
+        .neon-input:focus {
+            border-color: #b100ff;
+            box-shadow: 0 0 15px rgba(177, 0, 255, 0.4);
+        }
+
+        /* Hide Number Input Arrows */
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        /* Utility Animations */
+        .fade-in { animation: fadeIn 0.4s ease forwards; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .shake { animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        .guess-chip {
+            background: rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 0.875rem;
+            margin: 4px;
+            display: inline-block;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Ambient Background Elements -->
+    <div class="bg-orb orb-1"></div>
+    <div class="bg-orb orb-2"></div>
+
+    <!-- Main Container -->
+    <main class="glass-card fade-in" id="app-container">
+        
+        <!-- ==================== HOME SCREEN ==================== -->
+        <div id="home-screen" class="block">
+            <h1 class="text-4xl font-extrabold mb-2 bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 to-purple-500" style="text-shadow: 0 0 20px rgba(0,229,255,0.3);">
+                NEON GUESS
+            </h1>
+            <p class="text-gray-300 text-sm mb-8">System offline. Select difficulty to initialize.</p>
+
+            <div class="space-y-4 mb-8">
+                <button class="diff-btn w-full py-3 rounded-xl font-medium tracking-wide" data-diff="easy" data-max="50">
+                    Easy (1 - 50)
+                </button>
+                <button class="diff-btn w-full py-3 rounded-xl font-medium tracking-wide" data-diff="medium" data-max="100">
+                    Medium (1 - 100)
+                </button>
+                <button class="diff-btn w-full py-3 rounded-xl font-medium tracking-wide" data-diff="hard" data-max="500">
+                    Hard (1 - 500)
+                </button>
+            </div>
+
+            <button id="start-btn" class="btn-neon w-full py-4 text-lg" disabled>
+                Initialize Game
+            </button>
+        </div>
+
+        <!-- ==================== GAME SCREEN ==================== -->
+        <div id="game-screen" class="hidden">
+            <div class="flex justify-between items-center mb-6 text-sm text-gray-300 font-medium">
+                <span id="range-display" class="bg-white/10 px-3 py-1 rounded-full">Range: 1 - 100</span>
+                <span class="bg-white/10 px-3 py-1 rounded-full border border-white/20">
+                    Attempts: <span id="attempt-counter" class="text-cyan-400 font-bold">0</span> / 10
+                </span>
+            </div>
+
+            <h2 id="feedback-text" class="text-2xl font-bold mb-6 h-8 text-white transition-colors duration-300">
+                Awaiting Input...
+            </h2>
+
+            <div class="relative mb-6">
+                <input type="number" id="guess-input" class="neon-input w-full py-4 px-4" placeholder="0" autocomplete="off">
+            </div>
+
+            <p id="error-msg" class="text-red-400 text-sm h-5 mb-4 opacity-0 transition-opacity">Invalid input</p>
+
+            <button id="submit-btn" class="btn-neon w-full py-4 text-lg mb-6">
+                Submit Data
+            </button>
+
+            <div class="text-left border-t border-white/10 pt-4 mt-2">
+                <p class="text-xs text-gray-400 uppercase tracking-wider mb-2">System Logs (History)</p>
+                <div id="history-container" class="flex flex-wrap gap-1 min-h-[30px]">
+                    <!-- Guesses will appear here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== RESULT SCREEN ==================== -->
+        <div id="result-screen" class="hidden">
+            <div id="result-icon" class="text-6xl mb-4">🏆</div>
+            <h2 id="result-title" class="text-4xl font-bold mb-2">Victory!</h2>
+            <p class="text-gray-300 mb-6 text-lg">Target acquired: <span id="correct-number" class="text-white font-bold text-xl px-2"></span></p>
+            
+            <div class="bg-white/5 border border-white/10 rounded-xl p-4 mb-8">
+                <p class="text-sm text-gray-400 uppercase tracking-widest mb-1">Final Rank</p>
+                <p id="player-rank" class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 to-orange-500">
+                    Pro Player 🐐
+                </p>
+            </div>
+
+            <button id="restart-btn" class="btn-neon w-full py-4 text-lg">
+                System Reboot
+            </button>
+        </div>
+
+    </main>
+
+    <!-- ==================== JAVASCRIPT LOGIC ==================== -->
+    <script>
+        // --- State Variables ---
+        let targetNumber = 0;
+        let maxRange = 0;
+        let selectedDifficulty = null;
+        let attempts = 0;
+        const maxAttempts = 10;
+        let guessHistory = [];
+
+        // --- DOM Elements ---
+        const screens = {
+            home: document.getElementById('home-screen'),
+            game: document.getElementById('game-screen'),
+            result: document.getElementById('result-screen')
+        };
+        
+        const diffButtons = document.querySelectorAll('.diff-btn');
+        const startBtn = document.getElementById('start-btn');
+        const guessInput = document.getElementById('guess-input');
+        const submitBtn = document.getElementById('submit-btn');
+        const feedbackText = document.getElementById('feedback-text');
+        const attemptCounter = document.getElementById('attempt-counter');
+        const errorMsg = document.getElementById('error-msg');
+        const historyContainer = document.getElementById('history-container');
+        const rangeDisplay = document.getElementById('range-display');
+        
+        const resultTitle = document.getElementById('result-title');
+        const resultIcon = document.getElementById('result-icon');
+        const correctNumberSpan = document.getElementById('correct-number');
+        const playerRank = document.getElementById('player-rank');
+        const restartBtn = document.getElementById('restart-btn');
+
+        // --- Audio System (Web Audio API - No external files needed!) ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playSound(type) {
+            // Resume context if browser suspended it
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            const now = audioCtx.currentTime;
+            
+            if (type === 'correct') {
+                // Happy upward chime
+                oscillator.type = 'sine';
+                oscillator.frequency.setValueAtTime(523.25, now); // C5
+                oscillator.frequency.exponentialRampToValueAtTime(1046.50, now + 0.1); // C6
+                gainNode.gain.setValueAtTime(0.5, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                oscillator.start(now);
+                oscillator.stop(now + 0.5);
+            } else if (type === 'wrong') {
+                // Short low blip
+                oscillator.type = 'square';
+                oscillator.frequency.setValueAtTime(150, now);
+                oscillator.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+                gainNode.gain.setValueAtTime(0.1, now);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                oscillator.start(now);
+                oscillator.stop(now + 0.15);
+            } else if (type === 'gameover') {
+                // Sad downward sweep
+                oscillator.type = 'sawtooth';
+                oscillator.frequency.setValueAtTime(300, now);
+                oscillator.frequency.exponentialRampToValueAtTime(50, now + 0.8);
+                gainNode.gain.setValueAtTime(0.3, now);
+                gainNode.gain.linearRampToValueAtTime(0.01, now + 0.8);
+                oscillator.start(now);
+                oscillator.stop(now + 0.8);
+            }
+        }
+
+        // --- Screen Management ---
+        function showScreen(screenName) {
+            Object.values(screens).forEach(s => {
+                s.classList.add('hidden');
+                s.classList.remove('fade-in');
+            });
+            screens[screenName].classList.remove('hidden');
+            // Trigger reflow to restart animation
+            void screens[screenName].offsetWidth;
+            screens[screenName].classList.add('fade-in');
+        }
+
+        // --- Setup Logic ---
+        diffButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                // Reset styling
+                diffButtons.forEach(b => b.className = 'diff-btn w-full py-3 rounded-xl font-medium tracking-wide');
+                
+                selectedDifficulty = btn.dataset.diff;
+                maxRange = parseInt(btn.dataset.max);
+                
+                // Add selected class
+                btn.classList.add(`selected-${selectedDifficulty}`);
+                startBtn.disabled = false;
+                
+                // Play tiny click sound
+                if (audioCtx.state === 'suspended') audioCtx.resume();
+            });
+        });
+
+        startBtn.addEventListener('click', startGame);
+
+        function startGame() {
+            // Generate Random Number
+            targetNumber = Math.floor(Math.random() * maxRange) + 1;
+            attempts = 0;
+            guessHistory = [];
+            
+            // Update UI
+            rangeDisplay.textContent = `Range: 1 - ${maxRange}`;
+            attemptCounter.textContent = '0';
+            attemptCounter.className = 'text-cyan-400 font-bold';
+            historyContainer.innerHTML = '';
+            guessInput.value = '';
+            feedbackText.textContent = 'Awaiting Input...';
+            feedbackText.className = 'text-2xl font-bold mb-6 h-8 text-white transition-colors duration-300';
+            
+            showScreen('game');
+            setTimeout(() => guessInput.focus(), 100);
+        }
+
+        // --- Game Logic ---
+        function showError(msg) {
+            errorMsg.textContent = msg;
+            errorMsg.style.opacity = '1';
+            guessInput.classList.add('shake');
+            setTimeout(() => {
+                errorMsg.style.opacity = '0';
+                guessInput.classList.remove('shake');
+            }, 1500);
+        }
+
+        function handleGuess() {
+            const guessVal = guessInput.value.trim();
+            
+            // Validation
+            if (guessVal === '') {
+                showError("Input cannot be empty.");
+                return;
+            }
+            
+            const guess = parseInt(guessVal);
+            
+            if (isNaN(guess) || guess < 1 || guess > maxRange) {
+                showError(`Invalid! Enter a number between 1 and ${maxRange}.`);
+                return;
+            }
+
+            if (guessHistory.includes(guess)) {
+                showError("You already guessed that number.");
+                return;
+            }
+
+            // Valid Guess Processing
+            attempts++;
+            guessHistory.push(guess);
+            attemptCounter.textContent = attempts;
+            
+            // Update attempt text color based on danger level
+            if (attempts >= 8) attemptCounter.className = 'text-red-500 font-bold';
+            else if (attempts >= 5) attemptCounter.className = 'text-yellow-400 font-bold';
+
+            // Add to history UI
+            const chip = document.createElement('span');
+            chip.className = 'guess-chip';
+            chip.textContent = guess;
+            historyContainer.appendChild(chip);
+
+            // Compare
+            if (guess === targetNumber) {
+                playSound('correct');
+                endGame(true);
+            } else {
+                playSound('wrong');
+                guessInput.value = '';
+                guessInput.focus();
+                
+                if (attempts >= maxAttempts) {
+                    endGame(false);
+                } else {
+                    if (guess > targetNumber) {
+                        feedbackText.textContent = 'TOO HIGH ⬇️';
+                        feedbackText.style.color = '#ff0055'; // neon red/pink
+                    } else {
+                        feedbackText.textContent = 'TOO LOW ⬆️';
+                        feedbackText.style.color = '#fce803'; // neon yellow
+                    }
+                    // Reset color after brief moment
+                    setTimeout(() => feedbackText.style.color = 'white', 800);
+                }
+            }
+        }
+
+        submitBtn.addEventListener('click', handleGuess);
+        guessInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') handleGuess();
+        });
+
+        // --- End Game Logic ---
+        function getRank(attempts, isWin) {
+            if (!isWin) return { text: "Try Again 💀", color: "from-red-600 to-red-400" };
+            if (attempts <= 3) return { text: "Pro Player 🐐", color: "from-cyan-300 to-blue-500" };
+            if (attempts <= 5) return { text: "Skilled 😎", color: "from-green-400 to-emerald-600" };
+            if (attempts <= 7) return { text: "Beginner 🙂", color: "from-yellow-300 to-orange-500" };
+            return { text: "Lucky Survivor 😅", color: "from-purple-400 to-pink-500" };
+        }
+
+        function endGame(isWin) {
+            const rankInfo = getRank(attempts, isWin);
+            
+            if (isWin) {
+                resultTitle.textContent = "Victory Achieved!";
+                resultTitle.className = "text-4xl font-bold mb-2 text-green-400";
+                resultIcon.textContent = "🏆";
+            } else {
+                playSound('gameover');
+                resultTitle.textContent = "System Failure";
+                resultTitle.className = "text-4xl font-bold mb-2 text-red-500";
+                resultIcon.textContent = "💥";
+            }
+
+            correctNumberSpan.textContent = targetNumber;
+            playerRank.textContent = rankInfo.text;
+            playerRank.className = `text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r ${rankInfo.color}`;
+
+            showScreen('result');
+        }
+
+        // --- Restart Logic ---
+        restartBtn.addEventListener('click', () => {
+            // Reset UI state
+            startBtn.disabled = true;
+            diffButtons.forEach(b => b.className = 'diff-btn w-full py-3 rounded-xl font-medium tracking-wide');
+            selectedDifficulty = null;
+            showScreen('home');
+        });
+
+    </script>
+</body>
+</html>
